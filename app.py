@@ -6,7 +6,7 @@ import folium
 from branca.colormap import LinearColormap
 
 # Load CSV data with comma as decimal separator
-df = pd.read_csv('data copy.csv', encoding='latin1', sep=';', decimal=',')
+df = pd.read_csv('data.csv', encoding='latin1', sep=';', decimal=',')
 
 
 # Convert '2022' to numeric handling thousands and decimal separators
@@ -71,7 +71,6 @@ else:
 
     # Remove rows without data in '2022' and where '2022' != 0
     gdf_clean = gdf.dropna(subset=['2022'])
-    
     # Create the map
     m = create_map(gdf_clean)
 
