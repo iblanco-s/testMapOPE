@@ -4,17 +4,16 @@ import geopandas as gpd
 from streamlit_folium import st_folium
 import folium
 from branca.colormap import LinearColormap
+import numpy as np
 
 # Load CSV data with comma as decimal separator
 df = pd.read_csv('data.csv', encoding='latin1', sep=';', decimal=',')
-
 
 # Convert '2022' to numeric handling thousands and decimal separators
 df['2022'] = pd.to_numeric(df['2022'].str.replace('.', '', regex=False).str.replace(',', '.', regex=False), errors='coerce')
 
 # Convert 'Codigo municipio' to string and clean spaces, adding '0' if it has 4 characters
 df['Codigo municipio'] = df['Codigo municipio'].astype(str).apply(lambda x: '0' + x if len(x) == 4 else x)
-
 
 # Load GeoJSON file of municipalities in Euskadi
 gdf = gpd.read_file('euskadi.geojson')
@@ -31,19 +30,24 @@ else:
     # Merge data with GeoJSON using 'ud_kodea'
     gdf = gdf.merge(df, left_on='ud_kodea', right_on='Codigo municipio', how='left')
 
-    # Definir la función para crear el mapa
+    # Define the function to create the map
     def create_map(gdf):
-        # Crear mapa base centrado en Euskadi
+        # Create base map centered on Euskadi
         m = folium.Map(location=[42.9, -2.5], zoom_start=8)
 
-        # Verificar si hay datos válidos para crear el colormap
+        # Check if there is valid data to create the colormap
         if gdf['2022'].notna().any():
+            # Get the 90th percentile value
+            percentile_90 = np.percentile(gdf['2022'].dropna(), 90)
 
-            # Añadir capa choropleth
+            # Filter out values above the 90th percentile
+            gdf_filtered = gdf[gdf['2022'] <= percentile_90]
+
+            # Add choropleth layer
             choropleth = folium.Choropleth(
                 geo_data=gdf,
                 name='Potencia Fotovoltaica',
-                data=gdf,
+                data=gdf_filtered,
                 columns=['ud_kodea', '2022'],
                 key_on='feature.properties.ud_kodea',
                 fill_color='RdYlGn',
@@ -52,8 +56,7 @@ else:
                 legend_name='Potencia Fotovoltaica (kW por 10,000 habitantes)'
             ).add_to(m)
 
-
-            # Añadir funcionalidad de hover
+            # Add hover functionality
             folium.GeoJson(
                 gdf,
                 name='Etiquetas',
